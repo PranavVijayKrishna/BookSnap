@@ -1,5 +1,6 @@
 from fastapi import FastAPI, File, UploadFile
-
+from PIL import Image
+from io import BytesIO
 app = FastAPI()
 
 @app.get("/")
@@ -24,4 +25,22 @@ async def create_upload_file(file: UploadFile):
     file_size = file.file.tell()
     file_size_mb = file_size / (1024 ** 2)
     file.file.seek(0)
-    return {"message": "File received!", "filename": file.filename, "size in bytes": f'{file_size:.2f}', "size in megabytes": f'{file_size_mb:.2f}'}
+
+    file_content = await file.read()
+    in_memory_file = BytesIO(file_content)
+
+    image = Image.open(in_memory_file)
+
+    image_format = image.format
+    image_height = image.height
+    image_width = image.width
+
+    return {"message": "File received!", 
+            "filename": file.filename, 
+            "size in bytes": f'{file_size:.2f}', 
+            "size in megabytes": f'{file_size_mb:.2f}', 
+            "image format": image_format,
+            "image widht": image_width,
+            "image height": image_height}
+
+    
