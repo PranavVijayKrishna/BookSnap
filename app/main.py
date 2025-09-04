@@ -1,6 +1,7 @@
-from fastapi import FastAPI, File, UploadFile
-from PIL import Image
+from fastapi import FastAPI, File, UploadFile, HTTPException
+from PIL import Image, UnidentifiedImageError
 from io import BytesIO
+
 app = FastAPI()
 
 @app.get("/")
@@ -21,26 +22,33 @@ def greeter(name: str):
 
 @app.post("/upload")
 async def create_upload_file(file: UploadFile):
+    # file size calc
     file.file.seek(0, 2)
     file_size = file.file.tell()
     file_size_mb = file_size / (1024 ** 2)
     file.file.seek(0)
 
-    file_content = await file.read()
-    in_memory_file = BytesIO(file_content)
+    try:
+        # reading file into memory
+        file_content = await file.read()
+        in_memory_file = BytesIO(file_content)
 
-    image = Image.open(in_memory_file)
+        # open as image
+        image = Image.open(in_memory_file)
 
-    image_format = image.format
-    image_height = image.height
-    image_width = image.width
+        image_format = image.format
+        image_height = image.height
+        image_width = image.width
+    
+    except UnidentifiedImageError:
+        raise HTTPException(status_code = 400, detail = "Please upload an image file.")
 
     return {"message": "File received!", 
             "filename": file.filename, 
-            "size in bytes": f'{file_size:.2f}', 
-            "size in megabytes": f'{file_size_mb:.2f}', 
+            "size in bytes": file_size, 
+            "size in megabytes": round(file_size_mb, 2), 
             "image format": image_format,
-            "image widht": image_width,
+            "image width": image_width,
             "image height": image_height}
 
     
