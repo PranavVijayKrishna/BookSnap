@@ -1,8 +1,12 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
+from . import preprocess
 
 app = FastAPI()
+
+app.include_router(preprocess.router)
+
 
 @app.get("/")
 def home():
