@@ -7,7 +7,6 @@ app = FastAPI()
 
 app.include_router(preprocess.router)
 
-
 @app.get("/")
 def home():
     return {"message": "Hello and Welcome to BookSnap!"}

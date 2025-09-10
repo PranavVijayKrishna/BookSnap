@@ -1,4 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, FastAPI, File, UploadFile, HTTPException
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+import numpy as np
+import cv2 as cv
+
 
 router = APIRouter(
     prefix = "/preprocess",
@@ -9,3 +14,40 @@ router = APIRouter(
 def test_preprocess():
     return {"message": "Preprocessing router connected!"}
 
+# image cleanup 
+
+@router.post("/")
+async def preprocess(file: UploadFile):
+    try:
+        # reading file into memory
+        file_content = await file.read()
+        #in_memory_file = BytesIO(file_content)
+        
+        np_array = np.frombuffer(file_content, np.uint8)
+
+        image = cv.imdecode(np_array, cv.IMREAD_COLOR)
+
+        if image is None:
+            return{"error": "Could not decode image"}
+            
+        #preprocessing
+        
+        gryscl_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+        rsd_img = cv.resize(gryscl_img, (500, 500))
+        gaublr_img =cv.GaussianBlur(rsd_img, (5, 5), 0)
+        (T, processed_img) = cv.threshold(gaublr_img, 127, 255, cv.THRESH_BINARY)
+
+        
+        is_success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
+        if not is_success:
+            return {"error": f"Could not encode image"}
+        
+        io_stream = BytesIO(buffer)
+
+        return StreamingResponse(io_stream, media_type="image/jpeg")
+    
+    except Exception as e:
+        return {"error": f"Could not decode image: {str(e)}"}
+
+
+    #return {"message": "Preprocessing done successfully!", "filename": file.filename}
