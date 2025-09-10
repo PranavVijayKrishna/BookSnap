@@ -1,4 +1,4 @@
-from fastapi import APIRouter, FastAPI, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 import numpy as np
@@ -32,10 +32,15 @@ async def preprocess(file: UploadFile):
             
         #preprocessing
         
-        gryscl_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
-        rsd_img = cv.resize(gryscl_img, (500, 500))
-        gaublr_img =cv.GaussianBlur(rsd_img, (5, 5), 0)
-        (T, processed_img) = cv.threshold(gaublr_img, 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+        gray_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
+
+        scale = 150
+        width = int(image.shape[1] * scale / 100)
+        height = int(image.shape[0] * scale / 100)
+        resized_img = cv.resize(gray_img, (width, height))
+
+        blurred_img =cv.GaussianBlur(resized_img, (5, 5), 0)
+        (T, processed_img) = cv.threshold(blurred_img, 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
         
         success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
