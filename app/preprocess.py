@@ -28,26 +28,26 @@ async def preprocess(file: UploadFile):
         image = cv.imdecode(np_array, cv.IMREAD_COLOR)
 
         if image is None:
-            return{"error": "Could not decode image"}
+            raise HTTPException(status_code = 400, detail = "Invalid image file. Please upload a valid image file.")
             
         #preprocessing
         
         gryscl_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
         rsd_img = cv.resize(gryscl_img, (500, 500))
         gaublr_img =cv.GaussianBlur(rsd_img, (5, 5), 0)
-        (T, processed_img) = cv.threshold(gaublr_img, 127, 255, cv.THRESH_BINARY)
+        (T, processed_img) = cv.threshold(gaublr_img, 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
         
-        is_success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
-        if not is_success:
-            return {"error": f"Could not encode image"}
+        success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
+        if not success:
+            raise HTTPException(status_code = 500, detail = "Failed to encode image.")
         
         io_stream = BytesIO(buffer)
 
         return StreamingResponse(io_stream, media_type="image/jpeg")
     
     except Exception as e:
-        return {"error": f"Could not decode image: {str(e)}"}
+        raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")
 
 
     #return {"message": "Preprocessing done successfully!", "filename": file.filename}
