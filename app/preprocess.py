@@ -1,9 +1,12 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+import pytesseract
 import numpy as np
 import cv2 as cv
 
+
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 router = APIRouter(
     prefix = "/preprocess",
@@ -34,7 +37,7 @@ async def preprocess(file: UploadFile):
         
         gray_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
-        scale = 150
+        scale = 150 # 1.5x magnification
         width = int(image.shape[1] * scale / 100)
         height = int(image.shape[0] * scale / 100)
         resized_img = cv.resize(gray_img, (width, height))
@@ -42,14 +45,16 @@ async def preprocess(file: UploadFile):
         blurred_img =cv.GaussianBlur(resized_img, (5, 5), 0)
         (T, processed_img) = cv.threshold(blurred_img, 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
-        
-        success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
+        extracted_text = pytesseract.image_to_string(processed_img)
+
+        return {"extracted_text": extracted_text}
+        '''success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
         if not success:
             raise HTTPException(status_code = 500, detail = "Failed to encode image.")
         
         io_stream = BytesIO(buffer)
 
-        return StreamingResponse(io_stream, media_type="image/jpeg")
+        return StreamingResponse(io_stream, media_type="image/jpeg")'''
     
     except Exception as e:
         raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")
