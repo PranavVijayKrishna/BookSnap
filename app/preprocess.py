@@ -5,9 +5,6 @@ import pytesseract
 import numpy as np
 import cv2 as cv
 
-
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-
 router = APIRouter(
     prefix = "/preprocess",
     tags = ["Preprocessing"],
@@ -45,16 +42,13 @@ async def preprocess(file: UploadFile):
         blurred_img =cv.GaussianBlur(resized_img, (5, 5), 0)
         (T, processed_img) = cv.threshold(blurred_img, 127, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
 
-        extracted_text = pytesseract.image_to_string(processed_img)
-
-        return {"extracted_text": extracted_text}
-        '''success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
+        success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
         if not success:
             raise HTTPException(status_code = 500, detail = "Failed to encode image.")
         
         io_stream = BytesIO(buffer)
 
-        return StreamingResponse(io_stream, media_type="image/jpeg")'''
+        return StreamingResponse(io_stream, media_type="image/jpeg")
     
     except Exception as e:
         raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")

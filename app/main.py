@@ -2,11 +2,12 @@ from fastapi import FastAPI, File, UploadFile, HTTPException
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
 from . import preprocess
-
+from . import ocr
 
 app = FastAPI()
 
 app.include_router(preprocess.router)
+app.include_router(ocr.router2)
 
 @app.get("/")
 def home():

@@ -4,6 +4,7 @@ from io import BytesIO
 import pytesseract
 import numpy as np
 import cv2 as cv
+from .api_handler import clean_raw_string
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -46,14 +47,11 @@ async def preprocess(file: UploadFile):
 
         extracted_text = pytesseract.image_to_string(processed_img)
 
-        return {"extracted_text": extracted_text}
-        '''success, buffer = cv.imencode(".jpg", processed_img) # returns a tuple 
-        if not success:
-            raise HTTPException(status_code = 500, detail = "Failed to encode image.")
-        
-        io_stream = BytesIO(buffer)
+        extracted_text2 = clean_raw_string(extracted_text)
 
-        return StreamingResponse(io_stream, media_type="image/jpeg")'''
+        return {"extracted_text": extracted_text, "extracted_text 2": extracted_text2}
+        
+
     
     except Exception as e:
         raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")
