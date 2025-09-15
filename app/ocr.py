@@ -4,7 +4,7 @@ from io import BytesIO
 import pytesseract
 import numpy as np
 import cv2 as cv
-from .api_handler import clean_raw_string
+from .api_handler import clean_raw_string, get_book_info
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -47,11 +47,19 @@ async def preprocess(file: UploadFile):
 
         extracted_text = pytesseract.image_to_string(processed_img)
 
-        extracted_text2 = clean_raw_string(extracted_text)
+        cleaned_text = clean_raw_string(extracted_text)
 
-        return {"extracted_text": extracted_text, "extracted_text 2": extracted_text2}
+        api_result = get_book_info(cleaned_text)
         
 
+        if isinstance(api_result, dict):
+            title = api_result.get("title", "Title not found")
+            return {"extracted_text": extracted_text, 
+                    "cleaned text": cleaned_text,
+                    "book info": api_result
+                    }
+        else:
+            return{"Error": api_result}
     
     except Exception as e:
         raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")
