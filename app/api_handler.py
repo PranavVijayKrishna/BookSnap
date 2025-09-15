@@ -1,6 +1,8 @@
+from dotenv import load_dotenv
 import requests
 import json
 import re
+import os
 
 def clean_raw_string(raw_text):
 
@@ -13,7 +15,14 @@ def clean_raw_string(raw_text):
     return cleaned_text
 
 
-def get_book_info(query, api_key):
+def get_book_info(query):
+
+    load_dotenv()
+
+    api_key = os.getenv("GOOGLE_BOOKS_API_KEY")
+
+    if not api_key:
+        return "API key not found. Please set the 'API_KEY' environment variable."
 
     url = f"https://www.googleapis.com/books/v1/volumes?q={requests.utils.quote(query)}&key={api_key}"
 
@@ -52,7 +61,10 @@ def get_book_info(query, api_key):
                 "page_count": page_count,
                 "categories": ", ".join(categories)
             }
+
+        else:
+            return "No book information found for the given query."
         
 
     except requests.exceptions.RequestException as e:
-        return (f" API request failed: {str(e)}")
+        return (f"API request failed: {str(e)}")
