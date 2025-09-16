@@ -8,7 +8,7 @@ class BookRecord(Base):
     id = Column(Integer, primary_key = True, index = True)
     filename = Column(String, nullable = True)
     extracted_text = Column(Text, nullable = True)
-    cleaned_text = Column(Text, nullable = True)
+    cleaned_text = Column(Text, unique = True, index = True)
     book_info = Column(Text, nullable = True)
     created_at = Column(DateTime(timezone = True), server_default = func.now())
 
