@@ -1,10 +1,13 @@
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from fastapi.responses import StreamingResponse
+from sqlalchemy.ext.asyncio import AsyncSession
 from io import BytesIO
 import pytesseract
 import numpy as np
 import cv2 as cv
 from .api_handler import clean_raw_string, get_book_info
+from . import crud, models
+from .database import get_db
 
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
@@ -20,7 +23,7 @@ def test_preprocess():
 # image cleanup 
 
 @router2.post("/")
-async def preprocess(file: UploadFile):
+async def preprocess(file: UploadFile, db: AsyncSession = Depends(get_db)):
     try:
         # reading file into memory
         file_content = await file.read()
@@ -33,7 +36,7 @@ async def preprocess(file: UploadFile):
         if image is None:
             raise HTTPException(status_code = 400, detail = "Invalid image file. Please upload a valid image file.")
             
-        #preprocessing
+        # preprocessing
         
         gray_img = cv.cvtColor(image, cv.COLOR_BGR2GRAY)
 
@@ -49,17 +52,38 @@ async def preprocess(file: UploadFile):
 
         cleaned_text = clean_raw_string(extracted_text)
 
+        # db check
+        db_record = await crud.read_book_by_cleaned_text(db, cleaned_text)
+        if db_record:
+            return {
+                "source": "database",
+                "extracted_text": db_record.extracted_text,
+                "cleaned_text": db_record.cleaned_text,
+                "book_info": db_record.book_info
+            }
+
+
         api_result = get_book_info(cleaned_text)
         
-
         if isinstance(api_result, dict):
-            title = api_result.get("title", "Title not found")
-            return {"extracted_text": extracted_text, 
-                    "cleaned text": cleaned_text,
-                    "book info": api_result
-                    }
+            
+            await crud.create_book_record(
+                db= db,
+                filename= file.filename,
+                extracted_text= extracted_text,
+                cleaned_text= cleaned_text,
+                book_info= api_result
+            )
+
+            return {
+                "source": "api",
+                "extracted_text": extracted_text, 
+                "cleaned_text": cleaned_text,
+                "book_info": api_result
+            }
+        
         else:
-            return{"Error": api_result}
+            return{"error": api_result}
     
     except Exception as e:
         raise HTTPException(status_code = 500, detail = f"An error occured during processing: {str(e)}")
